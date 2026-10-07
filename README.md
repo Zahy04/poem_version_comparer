@@ -1,9 +1,7 @@
 # KHE – Porovnávač verzí básní
 
-Statická verze prohlížeče textových variant z datasetu
-[Critical Hybrid Edition](https://git.ucl.cas.cz/khe/data) (ÚČL AV ČR).
-Běží na GitHub Pages, **nevolá žádné API a neobsahuje žádné klíče** –
-vše je předpočítané v `data/`.
+Prohlížeč textových variant. Běží na GitHub Pages, **nevolá žádné API
+a neobsahuje žádné klíče** – vše je předpočítané v `data/`.
 
 ## Co umí
 
@@ -50,8 +48,3 @@ data/index.json     seznam básní
 data/poem/<id>.json verze, hrany, texty veršů, slokové mapy
 data/labels.json    předpočítané AI štítky (klíč = dvojice veršů)
 ```
-
-## Zdroj dat
-
-Texty a alignace: KHE dataset v1.0.0, Ústav pro českou literaturu AV ČR
-(<https://khe.ucl.cas.cz/bezruc/>). Veršová tokenizace: MorphoDiTa.

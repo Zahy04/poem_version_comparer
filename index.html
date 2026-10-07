@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KHE – Porovnávač verzí básní</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <h2>KHE – Porovnávač verzí</h2>
+  <input id="search" placeholder="Hledat báseň…" autocomplete="off">
+  <ul id="poem-list"><li class="loading">Načítám seznam…</li></ul>
+  <div id="credits">
+    Data: <a href="https://git.ucl.cas.cz/khe/data" target="_blank" rel="noopener">KHE dataset v1.0.0</a>,
+    ÚČL AV ČR. Texty versů jsou předpočítané, žádná API se z browseru nevolá.
+  </div>
+</aside>
+
+<main id="main">
+  <header id="header">
+    <h1 id="poem-title">Vyberte báseň ze seznamu</h1>
+    <span id="poem-sub"></span>
+  </header>
+
+  <nav id="tabs">
+    <button class="tab active" data-tab="graph">Graf verzí</button>
+    <button class="tab" data-tab="table">Tabulka verzí</button>
+    <button class="tab" data-tab="diff">Porovnání (diff)</button>
+  </nav>
+
+  <div id="content">
+    <div id="graph-panel" class="panel active">
+      <div id="graph-container"><p class="hint">Vyberte báseň…</p></div>
+    </div>
+
+    <div id="table-panel" class="panel">
+      <table class="ver-table"><thead><tr>
+        <th data-col="0" data-type="str">Otec<span class="arrow"></span></th>
+        <th data-col="1" data-type="str">Syn<span class="arrow"></span></th>
+        <th data-col="2" data-type="num">Levenshtein<span class="arrow"></span></th>
+        <th data-col="3" data-type="str">Zdroj A<span class="arrow"></span></th>
+        <th data-col="4" data-type="str">Zdroj B<span class="arrow"></span></th>
+        <th></th>
+      </tr></thead><tbody id="ver-tbody"></tbody></table>
+      <p class="hint">„Levenshtein“ je součet délek evidovaných úprav mezi dvojicí sousedních verzí – čím vyšší, tím větší zásah do textu.</p>
+    </div>
+
+    <div id="diff-panel" class="panel">
+      <div id="diff-controls">
+        <select id="diff-left"></select>
+        <span class="vs">&harr;</span>
+        <select id="diff-right"></select>
+        <div class="mode-switch" id="mode-switch" title="Jakým motorem se mají změny ohodnotit">
+          <span class="mode-label">Hodnocení</span>
+          <button data-mode="llm" class="active">LLM</button>
+          <button data-mode="jev">Jev</button>
+        </div>
+        <button id="diff-btn">Porovnat</button>
+        <div class="legend">
+          <span><span class="sw" style="background:#ffcdd2"></span> smazáno</span>
+          <span><span class="sw" style="background:#c8e6c9"></span> přidáno</span>
+          <span><span class="sw" style="background:#fff8e1"></span> změněno</span>
+        </div>
+      </div>
+      <div id="diff-result"></div>
+    </div>
+  </div>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+# nic tu není co by nepatřilo do repa – data/ se commituje schválně
+.DS_Store
+Thumbs.db
+*.log

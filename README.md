@@ -21,8 +21,16 @@ se zobrazí **jen tam, kde je předpočítané hodnocení** – viz
 `data/labels.json`. V hlavičce difu vidíš, kolik změn je ohodnoceno
 a kolik ne (`Ohodnoceno: X / Y změn`).
 
-Data se doplňují skriptem `export_site.py` v soukromém repozitáři
-`bachelor-thesis`, který čte KHE data a cache z API.
+K dispozici jsou tři motory, přepíná se v hlavičce difu:
+
+| Motor | Co dělá | Pokrytí |
+|---|---|---|
+| **LLM** | generativní model, multi-tag + české vysvětlení v tooltipu | předpočítáno na *Maryčka Magdonova* |
+| **Jev** | kalibrovaný klasifikátor (TypeSafe System One), top‑1 + pravděpodobnost | předpočítáno na *Maryčka Magdonova* |
+| **Pravidlo** | deterministická „Vrstva 0" — čistě znaková analýza ortografických změn (interpunkce, velikost písmen, diakritika, typografie). Žádné API, multi-tag. | 2 940 z 8 886 dvojic |
+
+Data se doplňují skripty v soukromém repozitáři
+`bachelor-thesis`, které čtou KHE data a cache z API.
 
 ## Lokálně
 

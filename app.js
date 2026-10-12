@@ -206,6 +206,7 @@ const CAT_COLORS = {
 };
 
 let evalMode = 'llm';
+const MODE_LABEL = { llm: 'LLM', jev: 'Jev', rule: 'Pravidlo' };
 let rated = 0, changed = 0;
 
 async function loadLabels() {
@@ -214,8 +215,11 @@ async function loadLabels() {
     const r = await fetch(`${DATA}/labels.json`);
     labels = await r.json();
   } catch (e) {
-    labels = { llm: {}, jev: {} };
+    labels = { llm: {}, jev: {}, rule: {} };
   }
+  labels.llm = labels.llm || {};
+  labels.jev = labels.jev || {};
+  labels.rule = labels.rule || {};
 }
 
 function classify(t1, t2) {
@@ -507,11 +511,16 @@ async function doDiff() {
     + `<span>Změněných: <b>${d.stats.mod}</b></span>`
     + `<span>Smazaných: <b>${d.stats.del}</b></span>`
     + `<span>Přidaných: <b>${d.stats.ins}</b></span>`
-    + `<span>Hodnocení: <b>${evalMode === 'jev' ? 'Jev' : 'LLM'}</b></span>`
+    + `<span>Hodnocení: <b>${MODE_LABEL[evalMode] || evalMode}</b></span>`
     + `<span>Ohodnoceno: <b>${rated} / ${changed}</b> změn</span></div>`;
   if (changed > rated) {
-    h += `<div class="engine-note">Tato demo verze obsahuje jen ${rated} předpočítaných hodnocení z ${changed} změn`
-      + ` – zbytek je zobrazen jen slovně. (Štítky se doplní předpočítáním přes API na straně autora.)</div>`;
+    if (evalMode === 'rule') {
+      h += `<div class="engine-note">Režim <b>Pravidlo</b> je deterministický (Vrstva 0) — pokrývá ${rated} z ${changed} změn`
+        + ` bez volání API. Zbytek jsou lexikální a strukturální změny, které vyžadují model.</div>`;
+    } else {
+      h += `<div class="engine-note">Tato demo verze obsahuje jen ${rated} předpočítaných hodnocení z ${changed} změn`
+        + ` – zbytek je zobrazen jen slovně. (Štítky se doplní předpočítáním přes API na straně autora.)</div>`;
+    }
   }
   h += d.html;
   $('#diff-result').innerHTML = h;

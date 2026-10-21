@@ -544,6 +544,12 @@ async function selectPoem(id, li) {
   try { renderGraph(d); } catch (e) { $('#graph-container').innerHTML = `<p class="hint">Chyba grafu: ${e.message}</p>`; }
   renderTable(d);
   fillSelects(d);
+
+  // přepnout zpět na graf a zahodit diff z předchozí básně
+  $('#diff-result').innerHTML = '';
+  sortCol = -1;
+  $$('.ver-table th .arrow').forEach(a => { a.textContent = ''; });
+  showTab('graph');
 }
 
 async function init() {

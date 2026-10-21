@@ -106,6 +106,19 @@ function align(a, b) {
 
 /* ── data ────────────────────────────────────────────────────────────── */
 
+/* Adresa má vždy odpovídat tomu, co je na obrazovce (permalink). */
+function syncUrl(withPair = true) {
+  const q = new URLSearchParams(location.search);
+  if (poemData) q.set('poem', poemData.id); else q.delete('poem');
+  const a = $('#diff-left').value, b = $('#diff-right').value;
+  if (withPair && a && b && a !== b) { q.set('a', a); q.set('b', b); }
+  else { q.delete('a'); q.delete('b'); }
+  const qs = q.toString();
+  try {
+    history.replaceState(null, '', qs ? `?${qs}` : location.pathname);
+  } catch (e) { /* file:// nebo starý prohlížeč – adresa zůstane být */ }
+}
+
 const verseLines = vid => {
   const out = [];
   (poemData.texts[vid] || []).forEach((lines, si) =>
@@ -553,9 +566,11 @@ async function doDiff() {
   // selecty vracejí stringy, ale mapy i grafy jsou klíčované čísly
   const a = +$('#diff-left').value, b = +$('#diff-right').value;
   if (!a || !b || a === b) {
+    syncUrl(false);
     $('#diff-result').innerHTML = '<p class="hint" style="padding:20px">Vyberte dvě různé verze.</p>';
     return;
   }
+  syncUrl(true);
   await loadLabels();
   const d = computeDiff(a, b);
   const v1 = poemData.versions.find(v => v.id == a), v2 = poemData.versions.find(v => v.id == b);
@@ -607,6 +622,7 @@ async function selectPoem(id, li) {
   sortCol = -1;
   $$('.ver-table th .arrow').forEach(a => { a.textContent = ''; });
   showTab('graph');
+  syncUrl(false);
 }
 
 async function init() {

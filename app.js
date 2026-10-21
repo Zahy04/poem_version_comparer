@@ -4,9 +4,9 @@
  * AI štítky leží v data/labels.json a klíčem k dvojici veršů je
  * "levý verš" + SEP + "pravý verš" (viz export_site.py).
  *
- * Diff počítá tady v prohlížeči: difflib z Pythonu je nahrazen LCS,
- * ostatní logika (slučování alignace přes BFS, skládání slokových map)
- * je port 1:1 z app.py.
+ * Diff počítá tady v prohlížeči (port difflib SequenceMatcher).
+ * Sloky se seskupují podle komponent mapy – mapování umí 1:N i N:1;
+ * když v mapě chybí reálný text, kreslí se plochý veršový diff.
  */
 'use strict';
 
@@ -135,51 +135,111 @@ function findPath(v1, v2) {
   return null;
 }
 
-function parseStanzaMap(m, forward) {
-  const smap = {}, inserted = new Set();
-  for (const [fr, to] of m) {
-    if (forward) {
-      if (!to.length) fr.forEach(s => { smap[s] = null; });
-      else if (!fr.length) to.forEach(s => inserted.add(s));
-      else smap[fr[0]] = to[0];
-    } else {
-      if (!fr.length) to.forEach(s => { smap[s] = null; });
-      else if (!to.length) fr.forEach(s => inserted.add(s));
-      else smap[to[0]] = fr[0];
-    }
+/* Sloka, která nese jen číslování / odrážku, není text básně. */
+const MARKER_RE = /^\s*(?:\*{1,3}|[IVXLC]+\.?)?\s*$/;
+const isMarkerStanza = lines => lines.every(l => MARKER_RE.test(l));
+
+function makeDSU(n) {
+  const parent = new Int32Array(n);
+  for (let i = 0; i < n; i++) parent[i] = i;
+  function find(x) {
+    while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; }
+    return x;
   }
-  return [smap, inserted];
+  function union(a, b) {
+    a = find(a); b = find(b);
+    if (a !== b) parent[a] = b;
+  }
+  return { find, union };
 }
 
-/* Složení dvou slokových map – jako Store.compose_stanza_maps() */
-function composeStanzaMaps(map1, ins1, map2, ins2) {
-  const result = {};
-  for (const a in map1) {
-    const b = map1[a];
-    result[a] = b === null ? null : (b in map2 ? map2[b] : null);
+/* Seskupí sloky podle mapy (přímé i přes BFS cestu). Mapa umí 1:N i N:1,
+ * takže se nedá číst jako "první index -> první index". Vrací [groups, nSteps];
+ * [null, 0] znamená, že se má kreslit plochý diff veršů – buď mapa chybí,
+ * nebo v ní chybí reálný text (ne jen "I." / "*"). */
+function buildStanzaGroups(v1, v2) {
+  let path;
+  if (findMapping(v1, v2)) path = [v1, v2];
+  else {
+    path = findPath(v1, v2);
+    if (!path || path.length < 2) return [null, 0];
   }
-  const ins = new Set(ins2);
-  for (const b of ins1) if (b in map2 && map2[b] !== null) ins.add(map2[b]);
-  return [result, ins];
-}
 
-/* Vrátí [smap, inserted, n_steps] – jako Store.build_stanza_map() */
-function buildStanzaMap(v1, v2) {
-  const direct = findMapping(v1, v2);
-  if (direct) {
-    const [smap, ins] = parseStanzaMap(direct.m, direct.fwd);
-    return [smap, ins, 1];
-  }
-  const path = findPath(v1, v2);
-  if (!path || path.length < 2) return [null, null, 0];
-  let cur = null;
+  const counts = path.map(id => (poemData.texts[id] || []).length);
+  const offsets = [];
+  let total = 0;
+  for (const n of counts) { offsets.push(total); total += n; }
+  const dsu = makeDSU(total);
+  const covered = counts.map(() => new Set());
+
   for (let k = 0; k < path.length - 1; k++) {
     const hit = findMapping(path[k], path[k + 1]);
-    if (!hit) return [null, null, 0];
-    const step = parseStanzaMap(hit.m, hit.fwd);
-    cur = cur === null ? step : composeStanzaMaps(cur[0], cur[1], step[0], step[1]);
+    if (!hit) return [null, 0];
+    for (const [fr, to] of hit.m) {
+      const L = hit.fwd ? fr : to;
+      const R = hit.fwd ? to : fr;
+      for (const l of L) if (l < counts[k]) covered[k].add(l);
+      for (const r of R) if (r < counts[k + 1]) covered[k + 1].add(r);
+      if (!L.length || !R.length) continue;
+      for (const l of L) for (const r of R) {
+        if (l < counts[k] && r < counts[k + 1])
+          dsu.union(offsets[k] + l, offsets[k + 1] + r);
+      }
+    }
   }
-  return [cur[0], cur[1], path.length - 1];
+
+  const last = path.length - 1;
+  const realGap = k => {
+    const stanzas = poemData.texts[path[k]] || [];
+    for (let i = 0; i < stanzas.length; i++)
+      if (!covered[k].has(i) && !isMarkerStanza(stanzas[i])) return true;
+    return false;
+  };
+  if (realGap(0) || realGap(last)) return [null, 0];
+
+  const comps = new Map();
+  const add = (node, side, idx) => {
+    const root = dsu.find(node);
+    if (!comps.has(root)) comps.set(root, { left: [], right: [] });
+    comps.get(root)[side].push(idx);
+  };
+  for (let l = 0; l < counts[0]; l++) add(offsets[0] + l, 'left', l);
+  for (let r = 0; r < counts[last]; r++) add(offsets[last] + r, 'right', r);
+
+  const st1 = poemData.texts[path[0]] || [];
+  const st2 = poemData.texts[path[last]] || [];
+  const linesFor = (stanzas, idxs) => idxs.reduce((acc, i) => acc.concat(stanzas[i] || []), []);
+
+  let groups = [...comps.values()].filter(g => g.left.length || g.right.length);
+  // čistě číslovací / odrážkové bloky nejsou text – nezobrazovat
+  groups = groups.filter(g => !isMarkerStanza(linesFor(st1, g.left).concat(linesFor(st2, g.right))));
+
+  const leftGroups = groups.filter(g => g.left.length)
+    .sort((a, b) => a.left[0] - b.left[0] || (a.right[0] ?? 999) - (b.right[0] ?? 999));
+  for (const g of groups) {
+    if (g.left.length) g.key = g.left[0];
+    else {
+      const r = g.right[0];
+      const nxt = leftGroups.find(lg => lg.right.length && lg.right[0] > r);
+      g.key = nxt ? nxt.left[0] - 0.5
+        : (leftGroups.length ? leftGroups[leftGroups.length - 1].left[0] + 0.5 : 0);
+    }
+  }
+  groups.sort((a, b) => a.key - b.key
+    || (a.left[0] ?? 999) - (b.left[0] ?? 999)
+    || (a.right[0] ?? 999) - (b.right[0] ?? 999));
+
+  for (const g of groups) {
+    const L = g.left, R = g.right;
+    if (L.length && R.length) {
+      if (L.length === R.length && L.every((x, i) => x === R[i])) g.kind = 'eq';
+      else if (L.length === 1 && R.length === 1) g.kind = 'shift';
+      else if (L.length === 1) g.kind = 'split';
+      else if (R.length === 1) g.kind = 'merge';
+      else g.kind = 'regroup';
+    } else g.kind = L.length ? 'del' : 'ins';
+  }
+  return [groups, last];
 }
 
 /* ── štítky ──────────────────────────────────────────────────────────── */
@@ -305,47 +365,43 @@ function diffBlock(lines1, lines2, out, stats) {
   }
 }
 
+function stanzaRange(idxs) {
+  if (!idxs.length) return '';
+  const n = idxs.map(i => i + 1);
+  if (n.length === 1) return String(n[0]);
+  let contiguous = true;
+  for (let i = 1; i < n.length; i++) if (n[i] !== n[i - 1] + 1) contiguous = false;
+  return contiguous ? `${n[0]}–${n[n.length - 1]}` : n.join(', ');
+}
+
 const ST_HEADERS = {
-  eq: ['st-eq', s => `<span class="st-l">Sloka ${s + 1}</span><span class="st-arrow">=</span><span class="st-r">Sloka ${s + 1}</span>`],
-  shift: ['st-shift', (f, t) => `<span class="st-l">Sloka ${f + 1}</span><span class="st-arrow">→</span><span class="st-r">Sloka ${t + 1}</span><span class="st-note">posun číslování</span>`],
-  del: ['st-del', f => `<span class="st-l">Sloka ${f + 1}</span><span class="st-arrow">✕</span><span class="st-r">smazáno</span><span class="st-note">sloka odstraněna</span>`],
-  ins: ['st-ins', (f, t) => `<span class="st-l">nová</span><span class="st-arrow">+</span><span class="st-r">Sloka ${t + 1}</span><span class="st-note">sloka přidána</span>`]
+  eq: ['st-eq', (L, R) => `<span class="st-l">Sloka ${stanzaRange(L)}</span><span class="st-arrow">=</span><span class="st-r">Sloka ${stanzaRange(R)}</span>`],
+  shift: ['st-shift', (L, R) => `<span class="st-l">Sloka ${stanzaRange(L)}</span><span class="st-arrow">→</span><span class="st-r">Sloka ${stanzaRange(R)}</span><span class="st-note">posun číslování</span>`],
+  split: ['st-shift', (L, R) => `<span class="st-l">Sloka ${stanzaRange(L)}</span><span class="st-arrow">→</span><span class="st-r">Sloka ${stanzaRange(R)}</span><span class="st-note">sloka rozdělena</span>`],
+  merge: ['st-shift', (L, R) => `<span class="st-l">Sloka ${stanzaRange(L)}</span><span class="st-arrow">→</span><span class="st-r">Sloka ${stanzaRange(R)}</span><span class="st-note">sloky sloučeny</span>`],
+  regroup: ['st-shift', (L, R) => `<span class="st-l">Sloka ${stanzaRange(L)}</span><span class="st-arrow">→</span><span class="st-r">Sloka ${stanzaRange(R)}</span><span class="st-note">sloky přeskupeny</span>`],
+  del: ['st-del', L => `<span class="st-l">Sloka ${stanzaRange(L)}</span><span class="st-arrow">✕</span><span class="st-r">smazáno</span><span class="st-note">${L.length > 1 ? 'sloky odstraněny' : 'sloka odstraněna'}</span>`],
+  ins: ['st-ins', (L, R) => `<span class="st-l">${R.length > 1 ? 'nové' : 'nová'}</span><span class="st-arrow">+</span><span class="st-r">Sloka ${stanzaRange(R)}</span><span class="st-note">${R.length > 1 ? 'sloky přidány' : 'sloka přidána'}</span>`]
 };
 
 function computeDiff(vid1, vid2) {
   const lines1 = verseLines(vid1), lines2 = verseLines(vid2);
-  const [smap, inserted, nSteps] = buildStanzaMap(vid1, vid2);
+  const [groups, nSteps] = buildStanzaGroups(vid1, vid2);
   const stats = { eq: 0, mod: 0, del: 0, ins: 0 }, out = [];
   rated = 0; changed = 0;
 
-  if (smap) {
+  if (groups && groups.length) {
     const st1 = new Map(), st2 = new Map();
     for (const l of lines1) { if (!st1.has(l[0])) st1.set(l[0], []); st1.get(l[0]).push(l); }
     for (const l of lines2) { if (!st2.has(l[0])) st2.set(l[0], []); st2.get(l[0]).push(l); }
 
-    const pairs = [], usedR = new Set();
-    for (const fl of Object.keys(smap).map(Number).sort((x, y) => x - y)) {
-      const tl = smap[fl];
-      if (tl === null) pairs.push(['del', fl, null, st1.get(fl) || [], []]);
-      else {
-        pairs.push([fl === tl ? 'eq' : 'shift', fl, tl, st1.get(fl) || [], st2.get(tl) || []]);
-        usedR.add(tl);
-      }
-    }
-    for (const tl of [...inserted].sort((x, y) => x - y)) {
-      pairs.push(['ins', null, tl, [], st2.get(tl) || []]);
-      usedR.add(tl);
-    }
-    for (const tl of [...st2.keys()].filter(k => !usedR.has(k)).sort((x, y) => x - y))
-      pairs.push(['ins', null, tl, [], st2.get(tl) || []]);
-    pairs.sort((x, y) => (x[1] !== null ? x[1] : 999) - (y[1] !== null ? y[1] : 999)
-      || (x[2] !== null ? x[2] : 999) - (y[2] !== null ? y[2] : 999));
-
     if (nSteps > 1) out.push(`<div class="derived-note">Složeno z ${nSteps} kroků mapování (tranzitivní alignace)</div>`);
 
-    for (const [kind, fl, tl, lns1, lns2] of pairs) {
-      const [cls, head] = ST_HEADERS[kind];
-      out.push(`<div class="st-block ${cls}"><div class="st-h ${cls}">${head(fl, tl)}</div>`);
+    for (const g of groups) {
+      const [cls, head] = ST_HEADERS[g.kind];
+      const lns1 = g.left.reduce((acc, si) => acc.concat(st1.get(si) || []), []);
+      const lns2 = g.right.reduce((acc, si) => acc.concat(st2.get(si) || []), []);
+      out.push(`<div class="st-block ${cls}"><div class="st-h ${cls}">${head(g.left, g.right)}</div>`);
       diffBlock(lns1, lns2, out, stats);
       out.push('</div>');
     }

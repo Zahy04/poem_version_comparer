@@ -12,6 +12,9 @@ a neobsahuje žádné klíče** – vše je předpočítané v `data/`.
   - word-level zvýraznění (`<del>`/`<ins>`) na úrovni veršů,
   - **sloková struktura** ze slokové alignace KHE (včetně tranzitivní
     složení přes BFS, když dvojice nemá přímé mapování),
+  - mapování umí 1:N i N:1 (rozdělené / sloučené sloky); čistě číslovací
+    sloky se v diffu nezobrazují a při neúplné mapě se použije plochý
+    veršový diff,
   - statistiky shodných / změněných / smazaných / přidaných veršů.
 
 ## Štítky AI hodnocení
@@ -44,7 +47,7 @@ Cesty jsou relativní, takže to funguje i z podadresáře
 
 ### Užitečné odkazy
 
-`?poem=4677&a=6603&b=6604` rovnou oteře báseň a konkrétní diff.
+`?poem=4695&a=5600&b=5601` rovnou otevře báseň a konkrétní diff.
 
 ## Struktura
 

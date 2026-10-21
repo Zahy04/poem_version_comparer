@@ -514,12 +514,13 @@ function renderTable(d) {
       tr.innerHTML = item.cells.map((c, i) => i === 2 ? `<td><b>${esc(c)}</b></td>`
         : `<td${i < 2 ? ' class="sigla"' : ''}>${esc(c)}</td>`).join('')
         + '<td><button class="cmp-btn">diff</button></td>';
-      tr.querySelector('.cmp-btn').onclick = ev => {
-        ev.stopPropagation();
+      const openDiff = () => {
         $('#diff-left').value = item.e[0]; $('#diff-right').value = item.e[1];
         showTab('diff');
         doDiff();
       };
+      tr.onclick = openDiff;
+      tr.querySelector('.cmp-btn').onclick = ev => { ev.stopPropagation(); openDiff(); };
       tb.appendChild(tr);
     }
   }

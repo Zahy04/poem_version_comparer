@@ -29,7 +29,7 @@ K dispozici jsou tři motory, přepíná se v hlavičce difu:
 | Motor | Co dělá | Pokrytí |
 |---|---|---|
 | **LLM** | generativní model, multi-tag + české vysvětlení v tooltipu | předpočítáno na *Maryčka Magdonova* |
-| **Jev** | kalibrovaný klasifikátor (TypeSafe System One), top‑1 + pravděpodobnost | předpočítáno na *Maryčka Magdonova* |
+| **Jev** | kalibrovaný klasifikátor (TypeSafe System One), top‑1 + pravděpodobnost; vidí jen dvojici veršů, bez kontextu sloky | 8 880 z 8 886 dvojic (u zbylých 6 žádná kategorie nedosáhla P ≥ 0,20) |
 | **Pravidlo** | deterministická „Vrstva 0" — čistě znaková analýza ortografických změn (interpunkce, velikost písmen, diakritika, typografie). Žádné API, multi-tag. | 2 940 z 8 886 dvojic |
 
 Data se doplňují skripty v soukromém repozitáři

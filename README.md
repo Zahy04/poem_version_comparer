@@ -19,18 +19,30 @@ a neobsahuje žádné klíče** – vše je předpočítané v `data/`.
 
 ## Štítky AI hodnocení
 
-Badge s kategorií změny (a u `LLM` i stručným vysvětlením v tooltipu)
-se zobrazí **jen tam, kde je předpočítané hodnocení** – viz
-`data/labels.json`. V hlavičce difu vidíš, kolik změn je ohodnoceno
+Badge s kategorií změny se zobrazí **jen tam, kde má zvolený motor
+předpočítané hodnocení**. U LLM je v tooltipu stručné vysvětlení, u Jeva
+pravděpodobnost. V hlavičce difu vidíš, kolik změn je ohodnoceno
 a kolik ne (`Ohodnoceno: X / Y změn`).
 
-K dispozici jsou tři motory, přepíná se v hlavičce difu:
+Každý motor má v hlavičce difu vlastní tlačítko a vlastní sadu štítků,
+nic se mezi motory neslučuje. Jev i všechna LLM dostala stejné zadání
+a stejné definice 26 kategorií (prompt v2); LLM smí vrátit víc
+kategorií, seřazených od převažující.
 
-| Motor | Co dělá | Pokrytí |
+| Motor | Co dělá | Štítek má (z 8 886 dvojic veršů) |
 |---|---|---|
-| **LLM** | generativní model, multi-tag + české vysvětlení v tooltipu | předpočítáno na *Maryčka Magdonova* |
-| **Jev** | kalibrovaný klasifikátor (TypeSafe System One), top‑1 + pravděpodobnost; vidí jen dvojici veršů, bez kontextu sloky | 8 880 z 8 886 dvojic (u zbylých 6 žádná kategorie nedosáhla P ≥ 0,20) |
-| **Pravidlo** | deterministická „Vrstva 0" — čistě znaková analýza ortografických změn (interpunkce, velikost písmen, diakritika, typografie). Žádné API, multi-tag. | 2 940 z 8 886 dvojic |
+| **Pravidlo** | deterministická „Vrstva 0" — čistě znaková analýza ortografických změn (interpunkce, velikost písmen, diakritika, typografie). Žádné API, multi-tag. | 3 059 |
+| **Jev** | kalibrovaný klasifikátor (TypeSafe System One), top‑1 + pravděpodobnost; vidí jen dvojici veršů, bez kontextu sloky | 8 882 (u zbylých 4 žádná kategorie nedosáhla P ≥ 0,20) |
+| **Luna** | `gpt-6-luna` (OpenAI), multi-tag + vysvětlení | 3 183 |
+| **DeepSeek** | `deepseek-v4.1-flash` (CERIT-SC), multi-tag + vysvětlení | 3 183 |
+| **Qwen** | `qwen3.8-27b` (CERIT-SC), multi-tag + vysvětlení | 3 185 |
+| **gpt-oss** | `gpt-oss-120b` (CERIT-SC), multi-tag + vysvětlení | 3 186 |
+| **Mistral** | `mistral-medium-3.5` (CERIT-SC), multi-tag + vysvětlení | 3 182 |
+
+LLM hodnotí jen **těžké páry** (3 186): oba verše mají text a pravidlo se
+nevyjádří, změnila se tedy samotná slova. Pravopisné změny pokrývá
+Pravidlo, celé smazané a přidané verše Jev. Těch pár párů, které u modelu
+chybí do 3 186, nedostalo platnou kategorii ani na třetí pokus.
 
 Data se doplňují skripty v soukromém repozitáři
 `bachelor-thesis`, které čtou KHE data a cache z API.
@@ -47,7 +59,8 @@ Cesty jsou relativní, takže to funguje i z podadresáře
 
 ### Užitečné odkazy
 
-`?poem=4695&a=5600&b=5601` rovnou otevře báseň a konkrétní diff.
+`?poem=4695&a=5600&b=5601` rovnou otevře báseň a konkrétní diff,
+`&m=deepseek-v4.1-flash` k tomu zapne motor (id z `data/engines.json`).
 
 ## Struktura
 
@@ -57,5 +70,6 @@ style.css           styly
 app.js              logika: LCS diff (port difflib), skládání alignace, vykreslení
 data/index.json     seznam básní
 data/poem/<id>.json verze, hrany, texty veršů, slokové mapy
-data/labels.json    předpočítané AI štítky (klíč = dvojice veršů)
+data/engines.json   motory v pořadí přepínače (id, model, verze promptu, počet štítků)
+data/labels/<id>.json  štítky jednoho motoru (klíč = dvojice veršů), stahují se až při zapnutí
 ```

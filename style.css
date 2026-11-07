@@ -45,13 +45,14 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; display: flex; height: 10
 #diff-controls select { padding: 8px 12px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 13px; min-width: 180px; max-width: 320px; }
 #diff-btn { padding: 8px 24px; background: #2980b9; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600; }
 #diff-btn:hover { background: #3498db; }
-.mode-switch { display: flex; align-items: stretch; border: 1px solid #bdc3c7; border-radius: 4px; overflow: hidden; background: #fff; }
+.mode-switch { display: flex; flex-wrap: wrap; align-items: stretch; border: 1px solid #bdc3c7; border-radius: 4px; overflow: hidden; background: #fff; }
 .mode-switch .mode-label { display: flex; align-items: center; padding: 0 10px; font-size: 10px; color: #7f8c8d; text-transform: uppercase; letter-spacing: .5px; background: #f8f9fa; border-right: 1px solid #bdc3c7; user-select: none; }
-.mode-switch button { padding: 8px 16px; border: none; background: #fff; color: #7f8c8d; cursor: pointer; font-size: 12px; font-weight: 600; transition: background .15s, color .15s; }
-.mode-switch button + button { border-left: 1px solid #bdc3c7; }
+.mode-switch button { padding: 8px 12px; border: none; background: #fff; color: #7f8c8d; cursor: pointer; font-size: 12px; font-weight: 600; transition: background .15s, color .15s; }
+.mode-switch button + button, .mode-switch button + .mode-label { border-left: 1px solid #bdc3c7; }
 .mode-switch button:hover { color: #2c3e50; }
-.mode-switch button[data-mode="llm"].active { background: #2980b9; color: #fff; }
-.mode-switch button[data-mode="jev"].active { background: #e67e22; color: #fff; }
+.mode-switch button.active { background: #2980b9; color: #fff; }
+.mode-switch button[data-kind="jev"].active { background: #e67e22; color: #fff; }
+.mode-switch button[data-kind="rule"].active { background: #16a085; color: #fff; }
 .engine-note { margin: 0 0 12px; padding: 8px 14px; background: #fff3e0; border: 1px solid #ffe0b2; border-radius: 6px; font-size: 12px; color: #e65100; }
 .vs { font-size: 18px; color: #7f8c8d; }
 

@@ -1,0 +1,57 @@
+[
+ {
+  "id": "rule",
+  "name": "Pravidlo",
+  "kind": "rule",
+  "model": "rule-1.1.0",
+  "labelled": 3059
+ },
+ {
+  "id": "jev",
+  "name": "Jev",
+  "kind": "jev",
+  "model": "jev-latest",
+  "prompt": "v2",
+  "labelled": 8882
+ },
+ {
+  "id": "gpt-6-luna",
+  "name": "Luna",
+  "kind": "llm",
+  "model": "gpt-6-luna",
+  "prompt": "v2",
+  "labelled": 3183
+ },
+ {
+  "id": "deepseek-v4.1-flash",
+  "name": "DeepSeek",
+  "kind": "llm",
+  "model": "deepseek-v4.1-flash",
+  "prompt": "v2",
+  "labelled": 3183
+ },
+ {
+  "id": "qwen3.8-27b",
+  "name": "Qwen",
+  "kind": "llm",
+  "model": "qwen3.8-27b",
+  "prompt": "v2",
+  "labelled": 3185
+ },
+ {
+  "id": "gpt-oss-120b",
+  "name": "gpt-oss",
+  "kind": "llm",
+  "model": "gpt-oss-120b",
+  "prompt": "v2",
+  "labelled": 3186
+ },
+ {
+  "id": "mistral-medium-3.5",
+  "name": "Mistral",
+  "kind": "llm",
+  "model": "mistral-medium-3.5",
+  "prompt": "v2",
+  "labelled": 3182
+ }
+]

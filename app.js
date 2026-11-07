@@ -1,8 +1,9 @@
 /* KHE – Porovnávač verzí básní (statická verze pro GitHub Pages)
  *
- * Veškerá data jsou v data/ a předpočítaná. Z browseru se nevolá žádné API –
- * AI štítky leží v data/labels.json a klíčem k dvojici veršů je
- * "levý verš" + SEP + "pravý verš" (viz export_site.py).
+ * Veškerá data jsou v data/ a předpočítaná. Z browseru se nevolá žádné API.
+ * Štítky má každý motor (pravidlo, Jev, jednotlivá LLM) ve vlastním souboru
+ * data/labels/<motor>.json, seznam motorů je v data/engines.json. Klíčem
+ * k dvojici veršů je "levý verš" + SEP + "pravý verš" (viz export_site.py).
  *
  * Diff počítá tady v prohlížeči (port difflib SequenceMatcher).
  * Sloky se seskupují podle komponent mapy – mapování umí 1:N i N:1;
@@ -17,7 +18,8 @@ const DATA = 'data';
 
 let poemData = null;
 let poemIndex = null;
-let labels = null;
+let engines = [];                      // data/engines.json, v pořadí přepínače
+const engineLabels = {};               // id motoru -> {dvojice veršů: štítky}, stahuje se až při použití
 
 /* ── pomocné ─────────────────────────────────────────────────────────── */
 
@@ -113,6 +115,7 @@ function syncUrl(withPair = true) {
   const a = $('#diff-left').value, b = $('#diff-right').value;
   if (withPair && a && b && a !== b) { q.set('a', a); q.set('b', b); }
   else { q.delete('a'); q.delete('b'); }
+  if (evalMode) q.set('m', evalMode); else q.delete('m');
   const qs = q.toString();
   try {
     history.replaceState(null, '', qs ? `?${qs}` : location.pathname);
@@ -278,27 +281,75 @@ const CAT_COLORS = {
   strukturalni_jine: '#ffebee', vice_zmen: '#fffde7', jine: '#fffde7'
 };
 
-let evalMode = 'llm';
-const MODE_LABEL = { llm: 'LLM', jev: 'Jev', rule: 'Pravidlo' };
+let evalMode = null;                   // id zapnutého motoru
 let rated = 0, changed = 0;
 
-async function loadLabels() {
-  if (labels) return;
+const engineById = id => engines.find(e => e.id === id) || null;
+const fmtNum = n => Number(n).toLocaleString('cs-CZ');
+
+async function loadEngines() {
   try {
-    const r = await fetch(`${DATA}/labels.json`);
-    labels = await r.json();
+    engines = await (await fetch(`${DATA}/engines.json`)).json();
   } catch (e) {
-    labels = { llm: {}, jev: {}, rule: {} };
+    engines = [];
   }
-  labels.llm = labels.llm || {};
-  labels.jev = labels.jev || {};
-  labels.rule = labels.rule || {};
+}
+
+async function loadLabels(id) {
+  if (!id || engineLabels[id]) return;
+  try {
+    const r = await fetch(`${DATA}/labels/${encodeURIComponent(id)}.json`);
+    engineLabels[id] = r.ok ? await r.json() : {};
+  } catch (e) {
+    engineLabels[id] = {};
+  }
 }
 
 function classify(t1, t2) {
-  if (!labels) return null;
-  const set = labels[evalMode];
+  const set = engineLabels[evalMode];
   return (set && set[t1 + SEP + t2]) || null;
+}
+
+/* Přepínač: Pravidlo, Jev a pak každé LLM jako samostatné tlačítko. */
+function renderModeSwitch() {
+  let h = '<span class="mode-label">Hodnocení</span>';
+  let prevKind = null;
+  for (const e of engines) {
+    if (e.kind === 'llm' && prevKind !== 'llm') h += '<span class="mode-label">LLM</span>';
+    prevKind = e.kind;
+    const what = e.kind === 'rule' ? `deterministické pravidlo ${e.model}` : `${e.model}, prompt ${e.prompt}`;
+    const tip = `${e.name}: ${what} – štítek u ${fmtNum(e.labelled)} dvojic veršů`;
+    h += `<button data-mode="${esc(e.id)}" data-kind="${esc(e.kind)}" title="${esc(tip)}">${esc(e.name)}</button>`;
+  }
+  const box = $('#mode-switch');
+  box.innerHTML = h;
+  box.querySelectorAll('button').forEach(btn => { btn.onclick = () => setMode(btn.dataset.mode); });
+  markMode();
+}
+
+function markMode() {
+  $$('#mode-switch button').forEach(x => x.classList.toggle('active', x.dataset.mode === evalMode));
+}
+
+async function setMode(id) {
+  evalMode = id;
+  markMode();
+  const a = +$('#diff-left').value, b = +$('#diff-right').value;
+  if (a && b && a !== b) await doDiff();
+  else syncUrl(false);
+}
+
+/* Proč u části změn chybí štítek – liší se podle typu motoru. */
+function engineNote(e) {
+  if (!e) return '';
+  if (e.kind === 'rule')
+    return `Režim <b>Pravidlo</b> je deterministický (Vrstva 0) — pokrývá ${rated} z ${changed} změn`
+      + ' bez volání API. Zbytek jsou lexikální a strukturální změny, které vyžadují model.';
+  if (e.kind === 'llm')
+    return `<b>${esc(e.name)}</b> hodnotí jen změny slov: oba verše mají text a pravidlo se nevyjádří.`
+      + ' Pravopisné změny pokrývá <b>Pravidlo</b>, celé smazané a přidané verše <b>Jev</b>.';
+  return `<b>${esc(e.name)}</b> nemá štítek u ${changed - rated} z ${changed} změn:`
+    + ' žádná kategorie nedosáhla pravděpodobnosti 20 %.';
 }
 
 /* ── řádky diffu ─────────────────────────────────────────────────────── */
@@ -571,7 +622,7 @@ async function doDiff() {
     return;
   }
   syncUrl(true);
-  await loadLabels();
+  await loadLabels(evalMode);
   const d = computeDiff(a, b);
   const v1 = poemData.versions.find(v => v.id == a), v2 = poemData.versions.find(v => v.id == b);
   const name = v => v ? `${v.sigla} – ${v.source || v.title}` : v;
@@ -583,17 +634,9 @@ async function doDiff() {
     + `<span>Změněných: <b>${d.stats.mod}</b></span>`
     + `<span>Smazaných: <b>${d.stats.del}</b></span>`
     + `<span>Přidaných: <b>${d.stats.ins}</b></span>`
-    + `<span>Hodnocení: <b>${MODE_LABEL[evalMode] || evalMode}</b></span>`
+    + `<span>Hodnocení: <b>${esc((engineById(evalMode) || { name: '–' }).name)}</b></span>`
     + `<span>Ohodnoceno: <b>${rated} / ${changed}</b> změn</span></div>`;
-  if (changed > rated) {
-    if (evalMode === 'rule') {
-      h += `<div class="engine-note">Režim <b>Pravidlo</b> je deterministický (Vrstva 0) — pokrývá ${rated} z ${changed} změn`
-        + ` bez volání API. Zbytek jsou lexikální a strukturální změny, které vyžadují model.</div>`;
-    } else {
-      h += `<div class="engine-note">Tato demo verze obsahuje jen ${rated} předpočítaných hodnocení z ${changed} změn`
-        + ` – zbytek je zobrazen jen slovně. (Štítky se doplní předpočítáním přes API na straně autora.)</div>`;
-    }
-  }
+  if (changed > rated) h += `<div class="engine-note">${engineNote(engineById(evalMode))}</div>`;
   h += d.html;
   $('#diff-result').innerHTML = h;
 }
@@ -626,6 +669,13 @@ async function selectPoem(id, li) {
 }
 
 async function init() {
+  // motor z odkazu (?m=…), jinak první LLM
+  const q = new URLSearchParams(location.search);
+  await loadEngines();
+  const firstLlm = engines.find(e => e.kind === 'llm') || engines[0];
+  evalMode = engineById(q.get('m')) ? q.get('m') : (firstLlm ? firstLlm.id : null);
+  renderModeSwitch();
+
   poemIndex = await (await fetch(`${DATA}/index.json`)).json();
   const ul = $('#poem-list');
   ul.innerHTML = '';
@@ -639,8 +689,7 @@ async function init() {
     ul.appendChild(li);
   }
 
-  // hloubkový odkaz: ?poem=4677&a=6603&b=6604 rovnou oteřeře diff
-  const q = new URLSearchParams(location.search);
+  // hloubkový odkaz: ?poem=4677&a=6603&b=6604&m=gpt-6-luna rovnou otevře diff
   const id = parseInt(q.get('poem'), 10);
   if (id) {
     const li = [...ul.children].find(x => x.dataset.id == id) || null;
@@ -661,13 +710,5 @@ $('#search').oninput = e => {
 };
 $$('.tab').forEach(t => { t.onclick = () => showTab(t.dataset.tab); });
 $('#diff-btn').onclick = doDiff;
-$$('#mode-switch button').forEach(btn => {
-  btn.onclick = async () => {
-    evalMode = btn.dataset.mode;
-    $$('#mode-switch button').forEach(x => x.classList.toggle('active', x.dataset.mode === evalMode));
-    const a = +$('#diff-left').value, b = +$('#diff-right').value;
-    if (a && b && a !== b) await doDiff();
-  };
-});
 
 init();

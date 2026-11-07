@@ -24,7 +24,7 @@ předpočítané hodnocení**. U LLM je v tooltipu stručné vysvětlení, u Jev
 pravděpodobnost. V hlavičce difu vidíš, kolik změn je ohodnoceno
 a kolik ne (`Ohodnoceno: X / Y změn`).
 
-Model (Jev nebo jedno z LLM) se vybírá v roletě v hlavičce difu, pravidlo
+Model (Jev nebo jedno z LLM) se vybírá v roletě v hlavičce difu (celé jméno, výrobce a logo), pravidlo
 se zapíná a vypíná čudlíkem **Pravidlo** a ukazuje se souběžně s modelem
 (odznak s přerušovaným rámečkem). Vypnutý čudlík = čistě model.
 Každý motor má vlastní sadu štítků,
@@ -36,12 +36,12 @@ kategorií, seřazených od převažující.
 |---|---|---|
 | **Pravidlo** | deterministická „Vrstva 0" — čistě znaková analýza ortografických změn (interpunkce, velikost písmen, diakritika, typografie) a celých smazaných a přidaných veršů (prázdná strana páru). Žádné API, multi-tag. | 5 699 |
 | **Jev** | kalibrovaný klasifikátor (TypeSafe System One), top‑1 + pravděpodobnost; vidí jen dvojici veršů, bez kontextu sloky | 8 882 (u zbylých 4 žádná kategorie nedosáhla P ≥ 0,20) |
-| **Luna** | `gpt-6-luna` (OpenAI), multi-tag + vysvětlení | 3 183 |
-| **DeepSeek** | `deepseek-v4.1-flash` (CERIT-SC), multi-tag + vysvětlení | 3 183 |
-| **Qwen** | `qwen3.8-27b` (CERIT-SC), multi-tag + vysvětlení | 3 185 |
-| **gpt-oss** | `gpt-oss-120b` (CERIT-SC), multi-tag + vysvětlení | 3 186 |
-| **Mistral** | `mistral-medium-3.5` (CERIT-SC), multi-tag + vysvětlení | 3 182 |
-| **Gemma** | `gemma4` (CERIT-SC), multi-tag + vysvětlení | 3 177 |
+| **GPT-6 Luna** | `gpt-6-luna` (OpenAI), multi-tag + vysvětlení | 3 183 |
+| **DeepSeek V4.1 Flash** | `deepseek-v4.1-flash` (DeepSeek, přes CERIT-SC), multi-tag + vysvětlení | 3 183 |
+| **Qwen3.8 27B** | `qwen3.8-27b` (Alibaba, přes CERIT-SC), multi-tag + vysvětlení | 3 185 |
+| **gpt-oss-120b** | `gpt-oss-120b` (OpenAI, přes CERIT-SC), multi-tag + vysvětlení | 3 186 |
+| **Mistral Medium 3.5** | `mistral-medium-3.5` (Mistral AI, přes CERIT-SC), multi-tag + vysvětlení | 3 182 |
+| **Gemma 4** | `gemma4` (Google, přes CERIT-SC), multi-tag + vysvětlení | 3 177 |
 
 LLM hodnotí jen **těžké páry** (3 186): oba verše mají text a pravidlo se
 nevyjádří, změnila se tedy samotná slova. Pravopisné změny a celé
@@ -77,4 +77,5 @@ data/index.json     seznam básní
 data/poem/<id>.json verze, hrany, texty veršů, slokové mapy
 data/engines.json   motory v pořadí přepínače (id, model, verze promptu, počet štítků)
 data/labels/<id>.json  štítky jednoho motoru (klíč = dvojice veršů), stahují se až při zapnutí
+logos/<logo>.svg    loga modelů v roletě (@lobehub/icons-static-svg 1.70.0, MIT; ochranné známky patří výrobcům)
 ```

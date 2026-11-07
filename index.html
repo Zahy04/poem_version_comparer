@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>KHE – Porovnávač verzí básní</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
 <aside id="sidebar">
@@ -52,10 +52,13 @@
         <span class="vs">&harr;</span>
         <select id="diff-right"></select>
         <!-- motory doplní app.js podle data/engines.json -->
-        <label class="mode-switch" title="Jakým motorem se mají změny ohodnotit">
+        <div class="mode-switch" title="Jakým motorem se mají změny ohodnotit">
           <span class="mode-label">Model</span>
-          <select id="mode-select"></select>
-        </label>
+          <div class="mode-dd">
+            <button type="button" id="mode-btn" aria-haspopup="listbox" aria-expanded="false"></button>
+            <ul id="mode-list" role="listbox" hidden></ul>
+          </div>
+        </div>
         <label class="rule-toggle"><input type="checkbox" id="rule-toggle" checked> Pravidlo</label>
         <button id="diff-btn">Porovnat</button>
         <div class="legend">
@@ -69,6 +72,6 @@
   </div>
 </main>
 
-<script src="app.js?v=4"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>

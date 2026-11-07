@@ -317,6 +317,14 @@ function classify(t1, t2) {
  * pravidlo pravopis a celé verše. */
 const KIND_GROUP = { jev: 'Klasifikátor', llm: 'LLM' };
 
+/* Logo motoru: SVG z logos/, Jev a modely bez loga dostanou písmeno. */
+const engineIcon = e => e.logo
+  ? `<img class="eng-logo" src="logos/${encodeURIComponent(e.logo)}.svg" alt="">`
+  : `<span class="eng-logo eng-letter">${esc((e.name || '?')[0])}</span>`;
+
+const engineFace = e => `${engineIcon(e)}<span class="eng-text"><span class="eng-name">${esc(e.name)}</span>`
+  + `<span class="eng-vendor">${esc(e.vendor || '')}</span></span>`;
+
 function renderModeSwitch() {
   const groups = [];
   for (const e of engines) {
@@ -325,13 +333,21 @@ function renderModeSwitch() {
     if (!g) groups.push(g = { kind: e.kind, items: [] });
     g.items.push(e);
   }
-  const opt = e => {
-    const what = `${e.model}, prompt ${e.prompt}`;
-    return `<option value="${esc(e.id)}" title="${esc(what)}">${esc(e.name)} – štítek u ${fmtNum(e.labelled)} párů</option>`;
+  const opt = e => `<li role="option" data-id="${esc(e.id)}" title="${esc(`${e.model}, prompt ${e.prompt}`)}">`
+    + `${engineFace(e)}<span class="eng-count">${fmtNum(e.labelled)} párů</span></li>`;
+  const list = $('#mode-list'), btn = $('#mode-btn');
+  list.innerHTML = groups.map(g => `<li class="eng-group" role="presentation">${esc(KIND_GROUP[g.kind] || g.kind)}</li>`
+    + g.items.map(opt).join('')).join('');
+  const open = on => { list.hidden = !on; btn.setAttribute('aria-expanded', on); };
+  btn.onclick = ev => { ev.stopPropagation(); open(list.hidden); };
+  list.onclick = ev => {
+    const li = ev.target.closest('li[data-id]');
+    if (!li) return;
+    open(false);
+    setMode(li.dataset.id);
   };
-  const sel = $('#mode-select');
-  sel.innerHTML = groups.map(g => `<optgroup label="${esc(KIND_GROUP[g.kind] || g.kind)}">${g.items.map(opt).join('')}</optgroup>`).join('');
-  sel.onchange = () => setMode(sel.value);
+  document.addEventListener('click', ev => { if (!ev.target.closest('.mode-dd')) open(false); });
+  document.addEventListener('keydown', ev => { if (ev.key === 'Escape') open(false); });
   const rule = engines.find(e => e.kind === 'rule');
   const tog = $('#rule-toggle');
   tog.checked = showRule;
@@ -347,8 +363,11 @@ function renderModeSwitch() {
 }
 
 function markMode() {
-  const sel = $('#mode-select');
-  if (sel && evalMode) sel.value = evalMode;
+  const e = engineById(evalMode);
+  if (!e) return;
+  $('#mode-btn').innerHTML = engineFace(e) + '<span class="eng-caret">▾</span>';
+  for (const li of $('#mode-list').querySelectorAll('li[data-id]'))
+    li.setAttribute('aria-selected', li.dataset.id === evalMode);
 }
 
 async function setMode(id) {

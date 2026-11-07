@@ -9,6 +9,7 @@
  {
   "id": "jev",
   "name": "Jev",
+  "vendor": "TypeSafe System One",
   "kind": "jev",
   "model": "jev-latest",
   "prompt": "v2",
@@ -16,7 +17,9 @@
  },
  {
   "id": "gpt-6-luna",
-  "name": "Luna",
+  "name": "GPT-6 Luna",
+  "vendor": "OpenAI",
+  "logo": "openai",
   "kind": "llm",
   "model": "gpt-6-luna",
   "prompt": "v2",
@@ -24,7 +27,9 @@
  },
  {
   "id": "deepseek-v4.1-flash",
-  "name": "DeepSeek",
+  "name": "DeepSeek V4.1 Flash",
+  "vendor": "DeepSeek",
+  "logo": "deepseek",
   "kind": "llm",
   "model": "deepseek-v4.1-flash",
   "prompt": "v2",
@@ -32,7 +37,9 @@
  },
  {
   "id": "qwen3.8-27b",
-  "name": "Qwen",
+  "name": "Qwen3.8 27B",
+  "vendor": "Alibaba",
+  "logo": "qwen",
   "kind": "llm",
   "model": "qwen3.8-27b",
   "prompt": "v2",
@@ -40,7 +47,9 @@
  },
  {
   "id": "gpt-oss-120b",
-  "name": "gpt-oss",
+  "name": "gpt-oss-120b",
+  "vendor": "OpenAI",
+  "logo": "openai",
   "kind": "llm",
   "model": "gpt-oss-120b",
   "prompt": "v2",
@@ -48,7 +57,9 @@
  },
  {
   "id": "mistral-medium-3.5",
-  "name": "Mistral",
+  "name": "Mistral Medium 3.5",
+  "vendor": "Mistral AI",
+  "logo": "mistral",
   "kind": "llm",
   "model": "mistral-medium-3.5",
   "prompt": "v2",
@@ -56,7 +67,9 @@
  },
  {
   "id": "gemma4",
-  "name": "Gemma",
+  "name": "Gemma 4",
+  "vendor": "Google",
+  "logo": "gemma",
   "kind": "llm",
   "model": "gemma4",
   "prompt": "v2",

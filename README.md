@@ -24,7 +24,10 @@ předpočítané hodnocení**. U LLM je v tooltipu stručné vysvětlení, u Jev
 pravděpodobnost. V hlavičce difu vidíš, kolik změn je ohodnoceno
 a kolik ne (`Ohodnoceno: X / Y změn`).
 
-Motor se vybírá v roletě v hlavičce difu. Každý má vlastní sadu štítků,
+Model (Jev nebo jedno z LLM) se vybírá v roletě v hlavičce difu, pravidlo
+se zapíná a vypíná čudlíkem **Pravidlo** a ukazuje se souběžně s modelem
+(odznak s přerušovaným rámečkem). Vypnutý čudlík = čistě model.
+Každý motor má vlastní sadu štítků,
 nic se mezi motory neslučuje. Jev i všechna LLM dostala stejné zadání
 a stejné definice 26 kategorií (prompt v2); LLM smí vrátit víc
 kategorií, seřazených od převažující.
@@ -61,7 +64,8 @@ Cesty jsou relativní, takže to funguje i z podadresáře
 ### Užitečné odkazy
 
 `?poem=4695&a=5600&b=5601` rovnou otevře báseň a konkrétní diff,
-`&m=deepseek-v4.1-flash` k tomu zapne motor (id z `data/engines.json`).
+`&m=deepseek-v4.1-flash` k tomu zapne model (id z `data/engines.json`),
+`&r=0` vypne pravidlo.
 
 ## Struktura
 

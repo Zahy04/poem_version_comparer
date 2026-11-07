@@ -116,6 +116,7 @@ function syncUrl(withPair = true) {
   if (withPair && a && b && a !== b) { q.set('a', a); q.set('b', b); }
   else { q.delete('a'); q.delete('b'); }
   if (evalMode) q.set('m', evalMode); else q.delete('m');
+  if (showRule) q.delete('r'); else q.set('r', '0');
   const qs = q.toString();
   try {
     history.replaceState(null, '', qs ? `?${qs}` : location.pathname);
@@ -281,7 +282,8 @@ const CAT_COLORS = {
   strukturalni_jine: '#ffebee', vice_zmen: '#fffde7', jine: '#fffde7'
 };
 
-let evalMode = null;                   // id zapnutého motoru
+let evalMode = null;                   // id zapnutého motoru (Jev nebo LLM)
+let showRule = true;                   // štítky pravidla zobrazit souběžně s modelem
 let rated = 0, changed = 0;
 
 const engineById = id => engines.find(e => e.id === id) || null;
@@ -310,23 +312,37 @@ function classify(t1, t2) {
   return (set && set[t1 + SEP + t2]) || null;
 }
 
-/* Roleta motorů: Pravidlo, Jev a pak každé LLM zvlášť (skupiny podle typu). */
-const KIND_GROUP = { rule: 'Pravidlo (deterministické)', jev: 'Klasifikátor', llm: 'LLM' };
+/* Roleta modelů (Jev a každé LLM zvlášť); pravidlo má vlastní čudlík,
+ * protože se zobrazuje souběžně s modelem – model popisuje změny slov,
+ * pravidlo pravopis a celé verše. */
+const KIND_GROUP = { jev: 'Klasifikátor', llm: 'LLM' };
 
 function renderModeSwitch() {
   const groups = [];
   for (const e of engines) {
+    if (e.kind === 'rule') continue;
     let g = groups.find(x => x.kind === e.kind);
     if (!g) groups.push(g = { kind: e.kind, items: [] });
     g.items.push(e);
   }
   const opt = e => {
-    const what = e.kind === 'rule' ? `pravidlo ${e.model}` : `${e.model}, prompt ${e.prompt}`;
+    const what = `${e.model}, prompt ${e.prompt}`;
     return `<option value="${esc(e.id)}" title="${esc(what)}">${esc(e.name)} – štítek u ${fmtNum(e.labelled)} párů</option>`;
   };
   const sel = $('#mode-select');
   sel.innerHTML = groups.map(g => `<optgroup label="${esc(KIND_GROUP[g.kind] || g.kind)}">${g.items.map(opt).join('')}</optgroup>`).join('');
   sel.onchange = () => setMode(sel.value);
+  const rule = engines.find(e => e.kind === 'rule');
+  const tog = $('#rule-toggle');
+  tog.checked = showRule;
+  tog.parentElement.title = rule ? `Deterministické pravidlo ${rule.model}: pravopisné změny a celé smazané`
+    + ` a přidané verše, štítek u ${fmtNum(rule.labelled)} párů` : '';
+  tog.onchange = async () => {
+    showRule = tog.checked;
+    const a = +$('#diff-left').value, b = +$('#diff-right').value;
+    if (a && b && a !== b) await doDiff();
+    else syncUrl(false);
+  };
   markMode();
 }
 
@@ -343,17 +359,16 @@ async function setMode(id) {
   else syncUrl(false);
 }
 
-/* Proč u části změn chybí štítek – liší se podle typu motoru. */
+/* Proč u části změn chybí štítek. */
 function engineNote(e) {
   if (!e) return '';
-  if (e.kind === 'rule')
-    return `Režim <b>Pravidlo</b> je deterministický (Vrstva 0) — pokrývá ${rated} z ${changed} změn`
-      + ' bez volání API: pravopisné změny a celé smazané a přidané verše. Zbytek jsou změny slov, které vyžadují model.';
-  if (e.kind === 'llm')
+  if (e.kind === 'llm' && !showRule)
     return `<b>${esc(e.name)}</b> hodnotí jen změny slov: oba verše mají text a pravidlo se nevyjádří.`
-      + ' Pravopisné změny a celé smazané a přidané verše pokrývá <b>Pravidlo</b>.';
-  return `<b>${esc(e.name)}</b> nemá štítek u ${changed - rated} z ${changed} změn:`
-    + ' žádná kategorie nedosáhla pravděpodobnosti 20 %.';
+      + ' Pravopisné změny a celé smazané a přidané verše ukáže čudlík <b>Pravidlo</b>.';
+  if (e.kind === 'jev' && !showRule)
+    return `<b>${esc(e.name)}</b> nemá štítek u ${changed - rated} z ${changed} změn:`
+      + ' žádná kategorie nedosáhla pravděpodobnosti 20 %.';
+  return `U ${changed - rated} z ${changed} změn nemá štítek ani <b>${esc(e.name)}</b>, ani pravidlo.`;
 }
 
 /* ── řádky diffu ─────────────────────────────────────────────────────── */
@@ -380,8 +395,10 @@ function row(op, l, r, lh, rh) {
     + `<div class="dc-r"><span class="dnum">${lnR}</span>${rh}</div></div>`;
 
   if (op !== 'eq') {
-    const cats = classify(l ? l[2] : '', r ? r[2] : '');
-    if (cats && cats.length) {
+    const t1 = l ? l[2] : '', t2 = r ? r[2] : '';
+    const cats = classify(t1, t2) || [];
+    const ruleCats = (showRule && engineLabels.rule && engineLabels.rule[t1 + SEP + t2]) || [];
+    if (cats.length || ruleCats.length) {
       const badges = cats.map(c => {
         let cat, tip;
         if (Array.isArray(c)) {                       // Jev: [kategorie, pravděpodobnost]
@@ -394,6 +411,11 @@ function row(op, l, r, lh, rh) {
         const attr = tip ? ` data-tip="${esc(tip)}"` : '';
         return `<span class="cat-badge"${attr} style="background:${CAT_COLORS[cat] || '#eee'}">${esc(label)}</span>`;
       });
+      for (const c of ruleCats) {
+        const cat = c.category;
+        badges.push(`<span class="cat-badge rule-badge" data-tip="${esc('Pravidlo – ' + (c.explanation || ''))}"`
+          + ` style="background:${CAT_COLORS[cat] || '#eee'}">${esc(CATEGORY_LABELS[cat] || cat)}</span>`);
+      }
       rated++;
       html += `<div class="cat-row">${badges.join('')}</div>`;
     }
@@ -626,7 +648,7 @@ async function doDiff() {
     return;
   }
   syncUrl(true);
-  await loadLabels(evalMode);
+  await Promise.all([loadLabels(evalMode), showRule ? loadLabels('rule') : null]);
   const d = computeDiff(a, b);
   const v1 = poemData.versions.find(v => v.id == a), v2 = poemData.versions.find(v => v.id == b);
   const name = v => v ? `${v.sigla} – ${v.source || v.title}` : v;
@@ -638,7 +660,7 @@ async function doDiff() {
     + `<span>Změněných: <b>${d.stats.mod}</b></span>`
     + `<span>Smazaných: <b>${d.stats.del}</b></span>`
     + `<span>Přidaných: <b>${d.stats.ins}</b></span>`
-    + `<span>Hodnocení: <b>${esc((engineById(evalMode) || { name: '–' }).name)}</b></span>`
+    + `<span>Hodnocení: <b>${esc((engineById(evalMode) || { name: '–' }).name)}${showRule ? ' + Pravidlo' : ''}</b></span>`
     + `<span>Ohodnoceno: <b>${rated} / ${changed}</b> změn</span></div>`;
   if (changed > rated) h += `<div class="engine-note">${engineNote(engineById(evalMode))}</div>`;
   h += d.html;
@@ -676,8 +698,10 @@ async function init() {
   // motor z odkazu (?m=…), jinak první LLM
   const q = new URLSearchParams(location.search);
   await loadEngines();
-  const firstLlm = engines.find(e => e.kind === 'llm') || engines[0];
-  evalMode = engineById(q.get('m')) ? q.get('m') : (firstLlm ? firstLlm.id : null);
+  const firstLlm = engines.find(e => e.kind === 'llm') || engines.find(e => e.kind !== 'rule');
+  const fromUrl = engineById(q.get('m'));
+  evalMode = fromUrl && fromUrl.kind !== 'rule' ? fromUrl.id : (firstLlm ? firstLlm.id : null);
+  showRule = q.get('r') !== '0';
   renderModeSwitch();
 
   poemIndex = await (await fetch(`${DATA}/index.json`)).json();

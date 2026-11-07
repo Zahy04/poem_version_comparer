@@ -310,25 +310,29 @@ function classify(t1, t2) {
   return (set && set[t1 + SEP + t2]) || null;
 }
 
-/* Přepínač: Pravidlo, Jev a pak každé LLM jako samostatné tlačítko. */
+/* Roleta motorů: Pravidlo, Jev a pak každé LLM zvlášť (skupiny podle typu). */
+const KIND_GROUP = { rule: 'Pravidlo (deterministické)', jev: 'Klasifikátor', llm: 'LLM' };
+
 function renderModeSwitch() {
-  let h = '<span class="mode-label">Hodnocení</span>';
-  let prevKind = null;
+  const groups = [];
   for (const e of engines) {
-    if (e.kind === 'llm' && prevKind !== 'llm') h += '<span class="mode-label">LLM</span>';
-    prevKind = e.kind;
-    const what = e.kind === 'rule' ? `deterministické pravidlo ${e.model}` : `${e.model}, prompt ${e.prompt}`;
-    const tip = `${e.name}: ${what} – štítek u ${fmtNum(e.labelled)} dvojic veršů`;
-    h += `<button data-mode="${esc(e.id)}" data-kind="${esc(e.kind)}" title="${esc(tip)}">${esc(e.name)}</button>`;
+    let g = groups.find(x => x.kind === e.kind);
+    if (!g) groups.push(g = { kind: e.kind, items: [] });
+    g.items.push(e);
   }
-  const box = $('#mode-switch');
-  box.innerHTML = h;
-  box.querySelectorAll('button').forEach(btn => { btn.onclick = () => setMode(btn.dataset.mode); });
+  const opt = e => {
+    const what = e.kind === 'rule' ? `pravidlo ${e.model}` : `${e.model}, prompt ${e.prompt}`;
+    return `<option value="${esc(e.id)}" title="${esc(what)}">${esc(e.name)} – štítek u ${fmtNum(e.labelled)} párů</option>`;
+  };
+  const sel = $('#mode-select');
+  sel.innerHTML = groups.map(g => `<optgroup label="${esc(KIND_GROUP[g.kind] || g.kind)}">${g.items.map(opt).join('')}</optgroup>`).join('');
+  sel.onchange = () => setMode(sel.value);
   markMode();
 }
 
 function markMode() {
-  $$('#mode-switch button').forEach(x => x.classList.toggle('active', x.dataset.mode === evalMode));
+  const sel = $('#mode-select');
+  if (sel && evalMode) sel.value = evalMode;
 }
 
 async function setMode(id) {
@@ -344,10 +348,10 @@ function engineNote(e) {
   if (!e) return '';
   if (e.kind === 'rule')
     return `Režim <b>Pravidlo</b> je deterministický (Vrstva 0) — pokrývá ${rated} z ${changed} změn`
-      + ' bez volání API. Zbytek jsou lexikální a strukturální změny, které vyžadují model.';
+      + ' bez volání API: pravopisné změny a celé smazané a přidané verše. Zbytek jsou změny slov, které vyžadují model.';
   if (e.kind === 'llm')
     return `<b>${esc(e.name)}</b> hodnotí jen změny slov: oba verše mají text a pravidlo se nevyjádří.`
-      + ' Pravopisné změny pokrývá <b>Pravidlo</b>, celé smazané a přidané verše <b>Jev</b>.';
+      + ' Pravopisné změny a celé smazané a přidané verše pokrývá <b>Pravidlo</b>.';
   return `<b>${esc(e.name)}</b> nemá štítek u ${changed - rated} z ${changed} změn:`
     + ' žádná kategorie nedosáhla pravděpodobnosti 20 %.';
 }

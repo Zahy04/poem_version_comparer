@@ -3,8 +3,8 @@
   "id": "rule",
   "name": "Pravidlo",
   "kind": "rule",
-  "model": "rule-1.1.0",
-  "labelled": 3059
+  "model": "rule-1.2.0",
+  "labelled": 5699
  },
  {
   "id": "jev",
@@ -53,5 +53,13 @@
   "model": "mistral-medium-3.5",
   "prompt": "v2",
   "labelled": 3182
+ },
+ {
+  "id": "gemma4",
+  "name": "Gemma",
+  "kind": "llm",
+  "model": "gemma4",
+  "prompt": "v2",
+  "labelled": 3177
  }
 ]

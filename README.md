@@ -24,24 +24,25 @@ předpočítané hodnocení**. U LLM je v tooltipu stručné vysvětlení, u Jev
 pravděpodobnost. V hlavičce difu vidíš, kolik změn je ohodnoceno
 a kolik ne (`Ohodnoceno: X / Y změn`).
 
-Každý motor má v hlavičce difu vlastní tlačítko a vlastní sadu štítků,
+Motor se vybírá v roletě v hlavičce difu. Každý má vlastní sadu štítků,
 nic se mezi motory neslučuje. Jev i všechna LLM dostala stejné zadání
 a stejné definice 26 kategorií (prompt v2); LLM smí vrátit víc
 kategorií, seřazených od převažující.
 
 | Motor | Co dělá | Štítek má (z 8 886 dvojic veršů) |
 |---|---|---|
-| **Pravidlo** | deterministická „Vrstva 0" — čistě znaková analýza ortografických změn (interpunkce, velikost písmen, diakritika, typografie). Žádné API, multi-tag. | 3 059 |
+| **Pravidlo** | deterministická „Vrstva 0" — čistě znaková analýza ortografických změn (interpunkce, velikost písmen, diakritika, typografie) a celých smazaných a přidaných veršů (prázdná strana páru). Žádné API, multi-tag. | 5 699 |
 | **Jev** | kalibrovaný klasifikátor (TypeSafe System One), top‑1 + pravděpodobnost; vidí jen dvojici veršů, bez kontextu sloky | 8 882 (u zbylých 4 žádná kategorie nedosáhla P ≥ 0,20) |
 | **Luna** | `gpt-6-luna` (OpenAI), multi-tag + vysvětlení | 3 183 |
 | **DeepSeek** | `deepseek-v4.1-flash` (CERIT-SC), multi-tag + vysvětlení | 3 183 |
 | **Qwen** | `qwen3.8-27b` (CERIT-SC), multi-tag + vysvětlení | 3 185 |
 | **gpt-oss** | `gpt-oss-120b` (CERIT-SC), multi-tag + vysvětlení | 3 186 |
 | **Mistral** | `mistral-medium-3.5` (CERIT-SC), multi-tag + vysvětlení | 3 182 |
+| **Gemma** | `gemma4` (CERIT-SC), multi-tag + vysvětlení | 3 177 |
 
 LLM hodnotí jen **těžké páry** (3 186): oba verše mají text a pravidlo se
-nevyjádří, změnila se tedy samotná slova. Pravopisné změny pokrývá
-Pravidlo, celé smazané a přidané verše Jev. Těch pár párů, které u modelu
+nevyjádří, změnila se tedy samotná slova. Pravopisné změny a celé
+smazané a přidané verše pokrývá Pravidlo. Těch pár párů, které u modelu
 chybí do 3 186, nedostalo platnou kategorii ani na třetí pokus.
 
 Data se doplňují skripty v soukromém repozitáři

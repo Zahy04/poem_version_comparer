@@ -84,5 +84,15 @@
   "model": "kimi-k3.1-pro",
   "prompt": "v2",
   "labelled": 3185
+ },
+ {
+  "id": "glm-5.3",
+  "name": "GLM 5.3",
+  "vendor": "Z.ai (Zhipu)",
+  "logo": "zhipu",
+  "kind": "llm",
+  "model": "glm-5.3",
+  "prompt": "v2",
+  "labelled": 3184
  }
 ]

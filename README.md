@@ -43,6 +43,7 @@ kategorií, seřazených od převažující.
 | **Mistral Medium 3.5** | `mistral-medium-3.5` (Mistral AI, přes CERIT-SC), multi-tag + vysvětlení | 3 182 |
 | **Gemma 4** | `gemma4` (Google, přes CERIT-SC), multi-tag + vysvětlení | 3 177 |
 | **Kimi K3.1 Pro** | `kimi-k3.1-pro` (Moonshot AI, přes CERIT-SC), multi-tag + vysvětlení | 3 185 |
+| **GLM 5.3** | `glm-5.3` (Z.ai, přes CERIT-SC), multi-tag + vysvětlení | 3 184 |
 
 LLM hodnotí jen **těžké páry** (3 186): oba verše mají text a pravidlo se
 nevyjádří, změnila se tedy samotná slova. Pravopisné změny a celé
